@@ -17,7 +17,31 @@
 
 #!/bin/bash
 
-# Define colors...
+#####################
+##### VARIABLES #####
+#####################
+
+# **************** #
+# Application List #
+# **************** #
+PACKAGE_LIST=(
+    'apt-transport-https'
+    'build-essential'
+    'mitmproxy'
+    'htop'
+    'git'
+    'zip'
+    'make'
+    'unzip'
+    'libc-dev'
+    'libffi-dev'
+    'python3-pip'
+    'python3-dev'
+    'libxml2-utils'
+)
+
+
+# Define Shell colors...
 RED=`tput bold && tput setaf 1`
 GREEN=`tput bold && tput setaf 2`
 YELLOW=`tput bold && tput setaf 3`
@@ -37,6 +61,10 @@ function BLUE(){
 	echo -e "\n${BLUE}${1}${NC}"
 }
 
+#######################
+# DO NOT CHANGE BELOW #
+#######################
+
 # ***************
 # Check Root 
 # ***************
@@ -44,6 +72,52 @@ if [ $UID -ne 0 ]
 then
 	RED "You must run this script as root!" && echo
 	exit
+fi
+
+##
+# Check Installed OS
+##
+
+OUTPUT=$(cat /etc/*release)
+
+if  echo $OUTPUT | grep -q "CentOS Linux 7" ; then
+        echo "Checking and installing curl and wget"
+	yum install curl wget -y 1> /dev/null
+	yum update curl wget ca-certificates -y 1> /dev/null
+        SERVER_OS="CentOS"
+elif echo $OUTPUT | grep -q "CentOS Linux 8" ; then
+        echo -e "\nDetecting Centos 8...\n"
+        SERVER_OS="CentOS8"
+	yum install curl wget -y 1> /dev/null
+	yum update curl wget ca-certificates -y 1> /dev/null
+elif echo $OUTPUT | grep -q "CloudLinux 7" ; then
+        echo "Checking and installing curl and wget"
+	yum install curl wget -y 1> /dev/null
+	yum update curl wget ca-certificates -y 1> /dev/null
+        SERVER_OS="CloudLinux"
+elif echo $OUTPUT | grep -q "AlmaLinux 8" ; then
+	echo "Checking and installing curl and wget"
+	yum install curl wget -y 1> /dev/null
+	yum update curl wget ca-certificates -y 1> /dev/null
+        SERVER_OS="AlmaLinux"
+elif echo $OUTPUT | grep -q "Rocky Linux" ; then 
+	echo "Checking and installing curl and wget"
+	yum install curl wget -y 1> /dev/null
+	yum update curl wget ca-certificates -y 1> /dev/null
+	SERVER_OS="RockyLinux"
+elif echo $OUTPUT | grep -q "Ubuntu 18.04" ; then
+	apt install -y -qq wget curl
+        SERVER_OS="Ubuntu"
+elif echo $OUTPUT | grep -q "Ubuntu 20.04" ; then
+	apt install -y -qq wget curl
+        SERVER_OS="Ubuntu20"
+elif echo $OUTPUT | grep -q "Ubuntu 22.04" ; then
+	apt install -y -qq wget curl
+	SERVER_OS="Ubuntu22"
+else
+        echo -e "\nUnable to detect your OS...\n"
+        echo -e "\nCyberPanel is supported on Ubuntu 18.04, Ubuntu 20.04, Ubuntu 20.10, Ubuntu 22.04,  CentOS 7.x, CentOS 8.x,  CloudLinux 7.x, CloudLinux 8.x and AlmaLinux 8.x...\n"
+        exit 1
 fi
 
 # ***************
@@ -111,6 +185,47 @@ fi
 
 echo "${GREEN}${RECLAIMED} KB Reclaimed. ${NC}"
 
+echo -e "${GREEN} Deployment Setup ${NC}"
+echo ""
+read -p "Please type the desired hostname: " SET_HOSTNAME
+read -p "Now type the IP address in CIDR notation, i.e. 192.168.1.1/24: " IP_ADDRESS
+read -p "The gateway IP: " GATEWAY_ADDRESS
+read -p "The primary DNS IP: " PRIMARY_DNS_ADDRESS
+read -p "And finally, the secondary DNS IP: " SECONDARY_DNS_ADDRESS
+
+# Set a new hostname
+echo -e "${GREEN} Hostname Set as:${NC} ${BLUE} ${SET_HOSTNAME} ${NC}"
+sudo hostnamectl set-hostname "$SET_HOSTNAME"
+
+# Create a Netplan config file in home dir
+sudo touch ~/99-custom.yaml
+
+# Apply network config to netplan config
+# Making assumptions about adaptor name
+echo "network:" > ~/99-custom.yaml
+echo "  ethernets:" >> ~/99-custom.yaml
+echo "    enp0s31f6:" >> ~/99-custom.yaml
+echo "      dhcp4: false" >> ~/99-custom.yaml
+echo "      addresses:"
+echo "       - [$IP_ADDRESS]" >> ~/99-custom.yaml
+echo "      routes:"
+echo "       - to: default"
+echo "         via: $GATEWAY_ADDRESS" >> ~/99-custom.yaml
+echo "      nameservers:" >> ~/99-custom.yaml
+echo "        addresses: [$PRIMARY_DNS_ADDRESS, $SECONDARY_DNS_ADDRESS, 0.0.0.0, 0.0.0.0" >> ~/99-custom.yaml
+echo "  version: 2" >> ~/99-custom.yaml
+
+echo -e "${GREEN} IP Set as:${NC} ${BLUE} ${IP_ADDRESS} ${NC}"
+echo -e "${GREEN} Gateway Set as:${NC} ${BLUE} ${GATEWAY_ADDRESS} ${NC}"
+echo -e "${GREEN} DNS Set as:${NC} ${BLUE} ${PRIMARY_DNS_ADDRESS} || ${SECONDARY_DNS_ADDRESS} ${NC}"
+
+# Copy custom config to netplan folder
+sudo cp ~/99-custom.yaml /etc/netplan/99-custom.yaml
+
+# Apply the new config
+sudo netplan apply
+
+# Start Standardised Software Installation
 echo -e "${BLUE} Installing Curl ...${NC}"
 sudo apt-get install -y curl
 
@@ -128,18 +243,16 @@ if [[ $(sudo dmidecode -s system-manufacturer) == "VMware, Inc." ]]; then
     sudo apt-get install open-vm-tools -y
 fi
 
-echo -e "${BLUE} Installing Git...${NC}"
-sudo apt install -y git
-
 echo -e "${BLUE} Installing Wazuh...${NC}"
 WAZUH_MANAGER="10.10.10.10" apt install wazuh-agent
 systemctl enable --now wazuh-agent.service
 
-
 # *
-# Check if installed on VMware
+# Install Applications
 # *
-
-#### 
-echo -e "${BLUE} Installing %APPLICATION_NAME%...${NC}"
-sudo apt install -y %APPLICATION_NAME%
+sudo echo -e "\n${BOLD}${BLUE}Installing Packages${NC}\n"
+for pkg in "${PACKAGE_LIST[@]}"; do
+    echo "${GREEN}Installing - ${RESET} ${BOLD}$pkg${RESET}"
+    sudo apt install "$pkg" -y &> /dev/null
+    check_status
+done
