@@ -6,13 +6,15 @@
  #  
  # Class Information:
  #
- # Class checks if software installed is installed then runs the installation for each program noted in install-list
+ # Class checks if the software installed is installed then run the installation for each program noted in Package List
  # 
  # Program Version: 1.0
  # Code Version: 1.0
  # 
  # Updates: 
  # 15/03/2023 - Initial Code Development
+ # 19/08/2023 - Added Basic Networking Setup
+ # 19/08/2023 - Added OS Detection
  ###
 
 #!/bin/bash
