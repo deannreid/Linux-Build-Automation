@@ -27,20 +27,32 @@
 # Application List #
 # **************** #
 PACKAGE_LIST=(
-    'apt-transport-https'
     'build-essential'
-    'mitmproxy'
     'htop'
     'git'
-    'zip'
+    'bzip2'
     'make'
-    'unzip'
-    'libc-dev'
-    'libffi-dev'
-    'python3-pip'
+    'fakeroot'
+    'javascript-common'
+    'mariadb-common'
+    'mysql-common'
     'python3-dev'
-    'libxml2-utils'
-)
+    'python3-distlib'
+    'python3-filelock'
+    'python3-pip'
+    'python3-pip-whl'
+    'python3-virtualenv'
+    'apache2'
+    ''
+    ''
+    ''
+    ''
+    ''
+    ''
+    ''
+    ''
+    
+    )
 
 
 # Define Shell colors...
