@@ -130,7 +130,7 @@ elif echo $OUTPUT | grep -q "Ubuntu 22.04" ; then
 	SERVER_OS="Ubuntu22"
 else
         echo -e "\nUnable to detect your OS...\n"
-        echo -e "\nCyberPanel is supported on Ubuntu 18.04, Ubuntu 20.04, Ubuntu 20.10, Ubuntu 22.04,  CentOS 7.x, CentOS 8.x,  CloudLinux 7.x, CloudLinux 8.x and AlmaLinux 8.x...\n"
+        echo -e "\nScript is supported on Ubuntu 18.04, Ubuntu 20.04, Ubuntu 20.10, Ubuntu 22.04,  CentOS 7.x, CentOS 8.x,  CloudLinux 7.x, CloudLinux 8.x and AlmaLinux 8.x...\n"
         exit 1
 fi
 
