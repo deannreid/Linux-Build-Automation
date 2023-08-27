@@ -2,7 +2,7 @@
  # Linux Build Automation
  # Built by @Dean Reid
  #
- # Class: LinuxInstaller.ps1
+ # Class: Linux-MulticraftDeployment.ps1
  #  
  # Class Information:
  #
@@ -12,9 +12,8 @@
  # Code Version: 1.0
  # 
  # Updates: 
- # 15/03/2023 - Initial Code Development
- # 19/08/2023 - Added Basic Networking Setup
- # 19/08/2023 - Added OS Detection
+ # 27/08/2023 - Initial Code Development
+
 
  ## PLEASE NOTE: This installer assumes that your NIC name is : enp0s31f6
  # If this is not the case you need to change it 
@@ -296,3 +295,36 @@ for pkg in "${PACKAGE_LIST[@]}"; do
     sudo apt install "$pkg" -y &> /dev/null
     check_status
 done
+
+#* 
+# Apache Setup
+#*
+echo -e "${BLUE} Setting up Apache ...${NC}"
+a2enmod suexec rewrite ssl actions include cgi
+php5enmod mcrypt
+service apache2 restart;
+a2enmod actions fastcgi alias;
+service apache2 restart;
+
+#* 
+# Apache Setup
+#*
+sudo echo -e "\n${BOLD}${BLUE}Installing Multicraft${NC}\n"
+cd ~
+mkdir ./tmp/multicraft
+cd ./tmp/multicraft
+wget http://www.multicraft.org/download/linux64 -O multicraft.tar.gz
+tar xvzf multicraft.tar.gz
+
+sudo echo -e "\n${BOLD}${GREEN}Moving Multicraft Web Panel to /var/www/html${NC}\n"
+mv -r ~/tmp/multicraft/multicraft/panel /var/www/html/mcpanel
+
+sudo echo -e "\n${BOLD}${GREEN}Moving Multicraft Daemon to /home/services/multicraft${NC}\n"
+mv -r ~/tmp/multicraft/multicraft /home/services/multicraft
+cd /home/services/multicraft
+./setup.sh
+
+#* 
+# Apache Setup
+#*
+sudo echo -e "\n${BOLD}${GREEN}Visit $IP_ADDRESS$ /mcpanel/install.php to finish installation of the web panel {NC}\n"
