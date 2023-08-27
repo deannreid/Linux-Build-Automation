@@ -217,7 +217,7 @@ done
 # *
 echo -e "${GREEN} Deployment Setup Complete :) ${NC}"
 echo ""
-echo -e "The Local IP: " $(hostname -I | awk '{print $1}')
-echo -e "The Extrn IP:" $(curl -s ifconfig.me)
-echo -e "The gateway IP: " $(ip route | awk '/default/ { print $3 }')
-echo -e "The primary DNS IP: " $(cat /etc/resolv.conf | grep "nameserver" | awk '{print $2}')
+echo -e "The Local IP: $(hostname -I | awk '{print $1}')"
+echo -e "The Extrn IP: $(curl -s ifconfig.me)"
+echo -e "The gateway IP: $(ip route | awk '/default/ { print $3 }')"
+echo -e "The primary DNS IP: $(cat /etc/resolv.conf | grep "nameserver" | awk '{print $2}')"
