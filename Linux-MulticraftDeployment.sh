@@ -1,3 +1,4 @@
+#!/bin/bash
 ##
  # Linux Build Automation
  # Built by @Dean Reid
@@ -13,13 +14,12 @@
  # 
  # Updates: 
  # 27/08/2023 - Initial Code Development
+ # 27/08/2023 - Fixed the Broke stuff
 
 
  ## PLEASE NOTE: This installer assumes that your NIC name is : enp0s31f6
  # If this is not the case you need to change it 
  ###
-
-#!/bin/bash
 
 #####################
 ##### VARIABLES #####
@@ -96,11 +96,11 @@ PACKAGE_LIST=(
 
 
 # Define Shell colors...
-RED=`tput bold && tput setaf 1`
-GREEN=`tput bold && tput setaf 2`
-YELLOW=`tput bold && tput setaf 3`
-BLUE=`tput bold && tput setaf 4`
-NC=`tput sgr0`
+RED=$(tput bold && tput setaf 1)
+GREEN=$(tput bold && tput setaf 2)
+YELLOW=$(tput bold && tput setaf 3)
+BLUE=$(tput bold && tput setaf 4)
+NC=$(tput sgr0)
 
 function RED(){
 	echo -e "\n${RED}${1}${NC}"
@@ -134,23 +134,23 @@ fi
 
 OUTPUT=$(cat /etc/*release)
 
-if  echo $OUTPUT | grep -q "CentOS Linux 7" ; then
+if  echo "$OUTPUT" | grep -q "CentOS Linux 7" ; then
         echo "Checking and installing curl and wget"
 	yum install curl wget -y 1> /dev/null
 	yum update curl wget ca-certificates -y 1> /dev/null
         SERVER_OS="CentOS"
-elif echo $OUTPUT | grep -q "CentOS Linux 8" ; then
+elif echo "$OUTPUT" | grep -q "CentOS Linux 8" ; then
         echo -e "\nDetecting Centos 8...\n"
         SERVER_OS="CentOS8"
 	yum install curl wget -y 1> /dev/null
 	yum update curl wget ca-certificates -y 1> /dev/null
-elif echo $OUTPUT | grep -q "Ubuntu 18.04" ; then
+elif echo "$OUTPUT" | grep -q "Ubuntu 18.04" ; then
 	apt install -y -qq wget curl
         SERVER_OS="Ubuntu"
-elif echo $OUTPUT | grep -q "Ubuntu 20.04" ; then
+elif echo "$OUTPUT" | grep -q "Ubuntu 20.04" ; then
 	apt install -y -qq wget curl
         SERVER_OS="Ubuntu20"
-elif echo $OUTPUT | grep -q "Ubuntu 22.04" ; then
+elif echo "$OUTPUT" | grep -q "Ubuntu 22.04" ; then
 	apt install -y -qq wget curl
 	SERVER_OS="Ubuntu22"
 else
@@ -224,45 +224,9 @@ fi
 
 echo "${GREEN}${RECLAIMED} KB Reclaimed. ${NC}"
 
-echo -e "${GREEN} Deployment Setup ${NC}"
-echo ""
-read -p "Please type the desired hostname: " SET_HOSTNAME
-read -p "Now type the IP address in CIDR notation, i.e. 192.168.1.1/24: " IP_ADDRESS
-read -p "The gateway IP: " GATEWAY_ADDRESS
-read -p "The primary DNS IP: " PRIMARY_DNS_ADDRESS
-read -p "And finally, the secondary DNS IP: " SECONDARY_DNS_ADDRESS
-
 # Set a new hostname
 echo -e "${GREEN} Hostname Set as:${NC} ${BLUE} ${SET_HOSTNAME} ${NC}"
 sudo hostnamectl set-hostname "$SET_HOSTNAME"
-
-# Create a Netplan config file in home dir
-sudo touch ~/99-custom.yaml
-
-# Apply network config to netplan config
-# Making assumptions about adaptor name
-echo "network:" > ~/99-custom.yaml
-echo "  ethernets:" >> ~/99-custom.yaml
-echo "    enp0s31f6:" >> ~/99-custom.yaml
-echo "      dhcp4: false" >> ~/99-custom.yaml
-echo "      addresses:"
-echo "       - [$IP_ADDRESS]" >> ~/99-custom.yaml
-echo "      routes:"
-echo "       - to: default"
-echo "         via: $GATEWAY_ADDRESS" >> ~/99-custom.yaml
-echo "      nameservers:" >> ~/99-custom.yaml
-echo "        addresses: [$PRIMARY_DNS_ADDRESS, $SECONDARY_DNS_ADDRESS, 0.0.0.0, 0.0.0.0" >> ~/99-custom.yaml
-echo "  version: 2" >> ~/99-custom.yaml
-
-echo -e "${GREEN} IP Set as:${NC} ${BLUE} ${IP_ADDRESS} ${NC}"
-echo -e "${GREEN} Gateway Set as:${NC} ${BLUE} ${GATEWAY_ADDRESS} ${NC}"
-echo -e "${GREEN} DNS Set as:${NC} ${BLUE} ${PRIMARY_DNS_ADDRESS} || ${SECONDARY_DNS_ADDRESS} ${NC}"
-
-# Copy custom config to netplan folder
-sudo cp ~/99-custom.yaml /etc/netplan/99-custom.yaml
-
-# Apply the new config
-sudo netplan apply
 
 # Start Standardised Software Installation
 echo -e "${BLUE} Installing Curl ...${NC}"
@@ -310,9 +274,9 @@ service apache2 restart;
 # Apache Setup
 #*
 sudo echo -e "\n${BOLD}${BLUE}Installing Multicraft${NC}\n"
-cd ~
+cd ~ || exit
 mkdir ./tmp/multicraft
-cd ./tmp/multicraft
+cd ./tmp/multicraft || exit
 wget http://www.multicraft.org/download/linux64 -O multicraft.tar.gz
 tar xvzf multicraft.tar.gz
 
@@ -321,10 +285,23 @@ mv -r ~/tmp/multicraft/multicraft/panel /var/www/html/mcpanel
 
 sudo echo -e "\n${BOLD}${GREEN}Moving Multicraft Daemon to /home/services/multicraft${NC}\n"
 mv -r ~/tmp/multicraft/multicraft /home/services/multicraft
-cd /home/services/multicraft
+cd /home/services/multicraft || exit
 ./setup.sh
 
 #* 
 # Apache Setup
 #*
 sudo echo -e "\n${BOLD}${GREEN}Visit $IP_ADDRESS$ /mcpanel/install.php to finish installation of the web panel {NC}\n"
+
+
+
+
+# *
+# Setup Completed
+# *
+echo -e "${GREEN} Deployment Setup Complete :) ${NC}"
+echo ""
+echo -e "The Local IP: $(hostname -I | awk '{print $1}')"
+echo -e "The Extrn IP: $(curl -s ifconfig.me)"
+echo -e "The gateway IP: $(ip route | awk '/default/ { print $3 }')"
+echo -e "The primary DNS IP: $(cat /etc/resolv.conf | grep "nameserver" | awk '{print $2}')"
